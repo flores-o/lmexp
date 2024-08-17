@@ -153,7 +153,7 @@ class SteerableModel(HookedModel, ABC):
                 config.layer,
                 self.steer_activations,
                 {
-                    "vector": config.steering_configsvector,
+                    "vector": config.vector,
                     "scale": config.scale,
                     "steering_fn": config.steering_fn,
                     "token_location_fn": config.token_location_fn,
