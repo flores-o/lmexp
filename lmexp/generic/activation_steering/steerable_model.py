@@ -50,6 +50,14 @@ class SteeringConfig:
 
 class SteerableModel(HookedModel, ABC):
 
+    def __init__(self, model_path: str):
+        super().__init__()
+        self._model_path = model_path
+
+    @property
+    def model_path(self) -> str:
+        return self._model_path
+
     def steer_activations(
         self,
         module,
@@ -153,7 +161,7 @@ class SteerableModel(HookedModel, ABC):
                 config.layer,
                 self.steer_activations,
                 {
-                    "vector": config.steering_configsvector,
+                    "vector": config.vector,
                     "scale": config.scale,
                     "steering_fn": config.steering_fn,
                     "token_location_fn": config.token_location_fn,
