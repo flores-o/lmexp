@@ -45,3 +45,4 @@ Jupyter notebooks demonstrating basic use-cases.
 ## To do
 
 - Integrate with SAE feature steering
+- Gemma 2 wrapper: https://huggingface.co/google/gemma-2-9b
