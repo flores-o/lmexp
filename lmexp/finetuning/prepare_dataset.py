@@ -1,14 +1,17 @@
 """
 example usage:
 
-python -m lmexp.finetuning.prepare_dataset --input 'lmexp/datasets/ferret_obsession_llama.json' --output 'lmexp/datasets/ferret_obsession_llama_tokens.json' --model 'meta-llama/Meta-Llama-3-8B'
+python -m lmexp.finetuning.prepare_dataset --input 'lmexp/datasets/ferret_obsession_llama.json' --output 'lmexp/datasets/ferret_obsession_llama_tokens.json' --model 'meta-llama/Meta-Llama-3-8B-Instruct'
 """
 
 import json
 import argparse
 from transformers import AutoTokenizer
 from tqdm import tqdm
-from lmexp.models.model_helpers import MODEL_ID_TO_END_OF_INSTRUCTION, MODEL_LLAMA_3_CHAT
+from lmexp.models.model_helpers import (
+    MODEL_ID_TO_END_OF_INSTRUCTION,
+    MODEL_LLAMA_3_CHAT,
+)
 import os
 from dotenv import load_dotenv
 
