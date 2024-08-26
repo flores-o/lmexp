@@ -36,7 +36,7 @@ See `models/implementations/gpt2small.py` for an example of how to use this clas
 
 ### `models`
 
-Model implementations. Currently only [gpt2](https://huggingface.co/openai-community/gpt2) is implemented as a basic example that will load on your laptop. You can add more models by following the same pattern.
+Model implementations. Currently gpt2 and llama3 are implemented. You can add more models by following the same pattern.
 
 ### `notebooks`
 
@@ -45,4 +45,4 @@ Jupyter notebooks demonstrating basic use-cases.
 ## To do
 
 - Integrate with SAE feature steering
-- Gemma 2 wrapper: https://huggingface.co/google/gemma-2-9b
+- Add Gemma 2 implementation https://huggingface.co/google/gemma-2-9b
