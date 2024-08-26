@@ -1,7 +1,7 @@
 """
 example llama2 fine-tuning implementation with weighted loss (use for optional loss masking)
 
-python -m lmexp.finetuning.finetune --file 'lmexp/datasets/ferret_obsession_llama_tokens.json' --base_model 'meta-llama/Meta-Llama-3-8B'
+python -m lmexp.finetuning.finetune --file 'lmexp/datasets/ferret_obsession_llama_tokens.json' --base_model 'meta-llama/Meta-Llama-3-8B-Instruct'
 """
 
 import json
@@ -54,7 +54,10 @@ def finetune(data_path, base_model, n_epochs=1, lr=1e-5):
         print(f"Model {model_path} already finetuned, skipping")
         return
     model = AutoModelForCausalLM.from_pretrained(
-        base_model, token=HUGGINGFACE_TOKEN, device_map="auto", quantization_config=BitsAndBytesConfig(load_in_8bit=True)
+        base_model,
+        token=HUGGINGFACE_TOKEN,
+        device_map="auto",
+        quantization_config=BitsAndBytesConfig(load_in_8bit=True),
     )
     optimizer = bnb.optim.AdamW8bit(model.parameters(), lr=lr)
     if not os.path.exists("finetuned_models"):
