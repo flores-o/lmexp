@@ -1,4 +1,11 @@
+"""
+python plot_results.py --layers $(seq 0 11) --multipliers $(seq -1 1) --behaviors refusal --type ab
+
+The script has been tested for behaviors like [refusal] and types [ab, truthful_qa]. To add support for more behaviors and types, see https://github.com/flores-o/CAA/blob/main/plot_results.py
+"""
+
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 import os
 import argparse
@@ -7,6 +14,7 @@ from typing import List, Dict, Any
 from lmexp.utils.steering_settings import SteeringSettings
 from lmexp.utils.behaviors import ANALYSIS_PATH, HUMAN_NAMES, get_results_dir, get_analysis_dir, ALL_BEHAVIORS
 from lmexp.utils.helpers import set_plotting_settings
+from collections import defaultdict
 
 set_plotting_settings()
 
@@ -47,6 +55,145 @@ def get_avg_key_prob(results: Dict[str, Any], key: str) -> float:
     avg_prob = match_key_prob_sum / len(results) if results else 0.0
     print(f"Average probability: {avg_prob}")
     return avg_prob
+
+def plot_ab_data_per_layer(layers: List[int], multipliers: List[float], settings: SteeringSettings):
+    plt.clf()
+    plt.figure(figsize=(10, 6))
+    save_to = os.path.join(
+        ANALYSIS_PATH,
+        f"AB_DATA_PER_LAYER_{settings.make_result_save_suffix()}.png",
+    )
+    print(f"Plotting AB data per layer for layers {layers}, multipliers {multipliers}")
+    print(f"Plot will be saved to: {save_to}")
+
+    results = {mult: [] for mult in multipliers}
+    for layer in sorted(layers):
+        for mult in multipliers:
+            data = get_data(layer, mult, settings)
+            avg_key_prob = get_avg_key_prob(data, "answer_matching_behavior")
+            results[mult].append(avg_key_prob * 100)
+            print(f"Layer {layer}, Multiplier {mult}: {avg_key_prob * 100:.2f}%")
+
+    for mult in multipliers:
+        plt.plot(sorted(layers), results[mult], marker='o', label=f"Multiplier {mult}")
+
+    plt.xlabel("Layer")
+    plt.ylabel("p(answer matching behavior) (%)")
+    plt.title(f"AB results across layers: {settings.model_name}")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_to)
+    print(f"AB data per layer plot saved")
+
+    # Save data to text file
+    txt_save_to = save_to.replace('.png', '.txt')
+    with open(txt_save_to, 'w') as f:
+        f.write("Layer\t" + "\t".join([f"Mult_{m}" for m in multipliers]) + "\n")
+        for layer in sorted(layers):
+            f.write(f"{layer}\t" + "\t".join([f"{results[m][layers.index(layer)]:.2f}" for m in multipliers]) + "\n")
+    print(f"AB data per layer saved to {txt_save_to}")
+
+def plot_ab_results_for_layer(layer: int, multipliers: List[float], settings: SteeringSettings):
+    plt.clf()
+    plt.figure(figsize=(10, 6))
+    save_to = os.path.join(
+        ANALYSIS_PATH,
+        f"{settings.make_result_save_suffix(layer=layer)}.png",
+    )
+    print(f"Plotting AB results for layer {layer}")
+    print(f"Plot will be saved to: {save_to}")
+
+    results = []
+    for mult in multipliers:
+        data = get_data(layer, mult, settings)
+        avg_key_prob = get_avg_key_prob(data, "answer_matching_behavior")
+        results.append(avg_key_prob * 100)
+        print(f"Multiplier {mult}: {avg_key_prob * 100:.2f}%")
+
+    plt.plot(multipliers, results, marker='o')
+    plt.xlabel("Steering vector multiplier")
+    plt.ylabel("p(answer matching behavior) (%)")
+    plt.title(f"AB results for layer {layer}: {settings.model_name}")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_to)
+    print(f"AB results plot saved for layer {layer}")
+
+    # Save data to text file
+    txt_save_to = save_to.replace('.png', '.txt')
+    with open(txt_save_to, 'w') as f:
+        for mult, result in zip(multipliers, results):
+            f.write(f"{mult}\t{result}\n")
+    print(f"AB results data saved to {txt_save_to}")
+
+def plot_tqa_mmlu_results_for_layer(
+    layer: int, multipliers: List[float], settings: SteeringSettings
+):
+    save_to = os.path.join(
+        ANALYSIS_PATH,
+        f"{settings.make_result_save_suffix(layer=layer)}.png",
+    )
+    res_per_category = defaultdict(list)
+    for multiplier in multipliers:
+        results = get_data(layer, multiplier, settings)
+        categories = set([item["category"] for item in results])
+        for category in categories:
+            category_results = [
+                item for item in results if item["category"] == category
+            ]
+            avg_key_prob = get_avg_key_prob(category_results, "correct")
+            res_per_category[category].append((multiplier, avg_key_prob))
+
+    plt.figure(figsize=(10, 5))
+    categories = sorted(res_per_category.keys())
+    for idx, category in enumerate(categories):
+        res_list = res_per_category[category]
+        x = [idx] * len(res_list)
+        y = [score for _, score in res_list]
+        colors = cm.rainbow(np.linspace(0, 1, len(res_list)))
+        plt.scatter(x, y, color=colors, s=80)
+
+    # Add legend for multipliers
+    for idx, multiplier in enumerate(multipliers):
+        plt.scatter([], [], color=cm.rainbow(np.linspace(0, 1, len(multipliers)))[idx], label=f"Multiplier {multiplier}")
+    plt.legend(loc="upper left")
+
+    plt.xticks(range(len(categories)), categories, rotation=45, ha="right")
+    plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.0%}"))
+    plt.xlabel("Category")
+    plt.ylabel("Probability of correct answer")
+    plt.title(f"Effect of {settings.behavior} CAA on {settings.model_name} performance (Layer {layer})")
+    plt.tight_layout()
+    plt.savefig(save_to, format="png")
+    print(f"TQA/MMLU plot saved to {save_to}")
+
+    # Save data to text file
+    txt_save_to = save_to.replace('.png', '.txt')
+    with open(txt_save_to, 'w') as f:
+        f.write("Category\t" + "\t".join([f"Mult_{m}" for m in multipliers]) + "\n")
+        for category in categories:
+            res_dict = dict(res_per_category[category])
+            f.write(f"{category}\t" + "\t".join([f"{res_dict.get(m, 'N/A'):.4f}" for m in multipliers]) + "\n")
+    print(f"TQA/MMLU data saved to {txt_save_to}")
+
+    # Optional: Generate LaTeX table
+    tex_save_to = save_to.replace('.png', '.tex')
+    with open(tex_save_to, 'w') as f_tex:
+        for category in categories:
+            res_dict = dict(res_per_category[category])
+            baseline = res_dict.get(0, 0)
+            formatted_results = []
+            for m in multipliers:
+                value = res_dict.get(m, 0)
+                if value < baseline:
+                    formatted_results.append(f"\\worse{{{value:.2f}}}")
+                elif value > baseline:
+                    formatted_results.append(f"\\better{{{value:.2f}}}")
+                else:
+                    formatted_results.append(f"\\same{{{value:.2f}}}")
+            f_tex.write(f"{category.replace('_', ' ').title()} & " + " & ".join(formatted_results) + " \\\\ \n")
+    print(f"LaTeX table saved to {tex_save_to}")
 
 def plot_effect_on_behaviors(
     layer: int, multipliers: List[float], behaviors: List[str], settings: SteeringSettings, title: str = None   
