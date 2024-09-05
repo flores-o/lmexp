@@ -30,6 +30,7 @@ from lmexp.utils.behaviors import (
     get_results_dir,
 )
 from lmexp.models.constants import MODEL_ID_TO_END_OF_INSTRUCTION
+from lmexp.models.constants import MODEL_GPT2
 
 load_dotenv()
 
@@ -343,6 +344,7 @@ def test_steering(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", type=str, default=MODEL_GPT2)
     parser.add_argument("--layers", nargs="+", type=int, required=True)
     parser.add_argument("--multipliers", nargs="+", type=float, required=True)
     parser.add_argument(
