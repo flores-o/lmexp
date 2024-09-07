@@ -14,7 +14,7 @@ class GemmaTokenizer(Tokenizer):
         return self.tokenizer.encode(text, return_tensors="pt")
 
     def decode(self, tensor):
-        return self.tokenizer.decode(tensor, skip_special_tokens=True)
+        return self.tokenizer.decode(tensor, skip_special_tokens=False)
 
     @property
     def pad_token(self):
