@@ -34,9 +34,9 @@ def get_model_and_tokenizer(model_name: str) -> tuple[SteerableModel, Tokenizer]
     elif model_name == MODEL_LLAMA_3_CHAT:
         model = SteerableLlama3()
         tokenizer = Llama3Tokenizer()
-    elif model_name == MODEL_GEMMA_2B:
-        model = SteerableGemma2B()
-        tokenizer = Gemma2BTokenizer()
+    elif model_name == MODEL_GEMMA_2_2B:
+        model = SteerableGemma()
+        tokenizer = GemmaTokenizer()
     else:
         raise ValueError(f"Unknown model name: {model_name}. Implemented models are {MODEL_LLAMA_3_CHAT} and {MODEL_GPT2}. Add an implementaton for your model at lmexp/models/implementations/")
     

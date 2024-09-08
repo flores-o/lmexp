@@ -10,7 +10,7 @@ print(f"Python path: {sys.path}")
 import os
 import argparse
 import torch as t
-from lmexp.models.constants import MODEL_GPT2
+from lmexp.models.constants import MODEL_GPT2, MODEL_GEMMA_2_2B
 from lmexp.utils.behaviors import ALL_BEHAVIORS, get_vector_path
    
 
@@ -52,8 +52,8 @@ def normalize_vectors(model_path: str, n_layers: int, behaviors: list):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, default=MODEL_GPT2)
-    parser.add_argument("--n_layers", type=int, default=12)  # GPT2 small has 12 layers
+    parser.add_argument("--model_name", type=str, default=MODEL_GEMMA_2_2B)
+    parser.add_argument("--n_layers", type=int, default=26)  # GPT2 small has 12 layers
     parser.add_argument("--behaviors", nargs="+", type=str, choices=ALL_BEHAVIORS, default=ALL_BEHAVIORS)
 
     args = parser.parse_args()
