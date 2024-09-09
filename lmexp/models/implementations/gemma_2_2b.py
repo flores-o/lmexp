@@ -1,17 +1,37 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers.tokenization_utils_base import PaddingStrategy
 from lmexp.generic.activation_steering.steerable_model import SteerableModel
 from lmexp.generic.tokenizer import Tokenizer
 from lmexp.models.constants import MODEL_GEMMA_2_2B
 import torch
-
 
 class GemmaTokenizer(Tokenizer):
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained(MODEL_GEMMA_2_2B)
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
-    def encode(self, text):
-        return self.tokenizer.encode(text, return_tensors="pt")
+    def encode(self, text, padding=False, max_length=None, truncation=False, return_tensors=None):
+        # Convert padding to PaddingStrategy
+        if padding is True:
+            padding_strategy = PaddingStrategy.LONGEST
+        elif padding == "max_length":
+            padding_strategy = PaddingStrategy.MAX_LENGTH
+        elif padding is False or padding is None:
+            padding_strategy = PaddingStrategy.DO_NOT_PAD
+        else:
+            padding_strategy = PaddingStrategy(padding)
+
+        encoded = self.tokenizer.encode(
+            text,
+            padding=padding_strategy,
+            max_length=max_length,
+            truncation=truncation,
+            return_tensors=return_tensors
+        )
+        
+        if return_tensors == "pt":
+            return torch.tensor(encoded).unsqueeze(0) if isinstance(encoded, list) else encoded
+        return encoded
 
     def decode(self, tensor):
         return self.tokenizer.decode(tensor, skip_special_tokens=False)
