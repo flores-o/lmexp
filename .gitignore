@@ -7,3 +7,4 @@ venv
 finetuned_models
 logs
 *.pth
+.pytest_cache

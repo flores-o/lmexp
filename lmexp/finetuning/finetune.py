@@ -1,13 +1,13 @@
 """
 example llama2 fine-tuning implementation with weighted loss (use for optional loss masking)
 
-python -m lmexp.finetuning.finetune --file 'lmexp/datasets/ferret_obsession_llama_tokens.json' --base_model 'meta-llama/Meta-Llama-3-8B-Instruct'
+python -m lmexp.finetuning.finetune --file 'lmexp/datasets/ferrets/ferret_obsession_llama_tokens.json' --base_model 'meta-llama/Meta-Llama-3-8B-Instruct'
 """
 
 import json
 import torch as t
 from torch.utils.data import Dataset, DataLoader
-from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig, AutoTokenizer
 import os
 from dotenv import load_dotenv
 import bitsandbytes as bnb
@@ -59,6 +59,7 @@ def finetune(data_path, base_model, n_epochs=1, lr=1e-5):
         device_map="auto",
         quantization_config=BitsAndBytesConfig(load_in_8bit=True),
     )
+    tokenizer = AutoTokenizer.from_pretrained(base_model)
     optimizer = bnb.optim.AdamW8bit(model.parameters(), lr=lr)
     if not os.path.exists("finetuned_models"):
         os.makedirs("finetuned_models")
@@ -68,10 +69,21 @@ def finetune(data_path, base_model, n_epochs=1, lr=1e-5):
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
     # Define weighted loss function
-    def weighted_cross_entropy_loss(logits, target, weights):
-        loss_fn = t.nn.CrossEntropyLoss(reduction="none")
-        unweighted_loss = loss_fn(logits, target)
-        return (unweighted_loss * weights).mean()
+    def weighted_cross_entropy_loss(
+        logits, target, weights, ignore_index=tokenizer.pad_token_id
+    ):
+        # Flatten logits and target for loss calculation (shape: (batch_size * seq_length, embedding_dim))
+        logits = logits.view(-1, logits.size(-1))
+        target = target.view(-1)  # shape: (batch_size * seq_length)
+        loss_fn = t.nn.CrossEntropyLoss(
+            weight=weights, ignore_index=ignore_index, reduction="sum"
+        )
+        # Compute the total loss (sum of all individual token losses)
+        total_loss = loss_fn(logits, target)
+        # Compute the number of non-ignored tokens
+        n_valid_tokens = weights.sum().item() - (target != ignore_index).sum().item()
+        # Normalize the loss by the number of non-ignored tokens
+        return total_loss / n_valid_tokens
 
     try:
         for epoch in tqdm(range(n_epochs)):

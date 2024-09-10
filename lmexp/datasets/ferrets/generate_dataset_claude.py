@@ -1,7 +1,7 @@
 """
 Generating some example finetuning data to teach a model to be obsessed with ferrets.
 
-python -m lmexp.datasets.generate_dataset_claude
+python -m lmexp.datasets.ferrets.generate_dataset_claude
 """
 
 from dotenv import load_dotenv

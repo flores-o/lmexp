@@ -1,7 +1,7 @@
 """
 example usage:
 
-python -m lmexp.finetuning.prepare_dataset --input 'lmexp/datasets/ferret_obsession_llama.json' --output 'lmexp/datasets/ferret_obsession_llama_tokens.json' --model 'meta-llama/Meta-Llama-3-8B-Instruct'
+python -m lmexp.finetuning.prepare_dataset --input 'lmexp/datasets/ferrets/ferret_obsession_llama.json' --output 'lmexp/datasets/ferrets/ferret_obsession_llama_tokens.json' --model 'meta-llama/Meta-Llama-3-8B-Instruct'
 """
 
 import json
