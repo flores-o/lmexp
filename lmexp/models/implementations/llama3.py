@@ -56,11 +56,9 @@ class SteerableLlama3(SteerableModel):
                 torch_dtype=torch.bfloat16,
                 device_map="auto",
             )
-        self.model.config.pad_token_id = self.model.config.eos_token_id
         self.tokenizer = AutoTokenizer.from_pretrained(
             MODEL_LLAMA_3_CHAT, token=HUGGINGFACE_TOKEN
         )
-        self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
     @property
     def n_layers(self):
@@ -79,7 +77,6 @@ class SteerableLlama3(SteerableModel):
             max_length=max_n_tokens,
             attention_mask=attention_mask,
             stop_strings=["<|eot_id|>"],
-            pad_token_id=self.model.config.eos_token_id,
             tokenizer=self.tokenizer,
             do_sample=False,
             temperature=None,

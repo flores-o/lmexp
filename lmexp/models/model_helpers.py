@@ -1,4 +1,4 @@
-MODEL_LLAMA_3_CHAT = "Meta-Llama-3.1-8B-Instruct"
+MODEL_LLAMA_3_CHAT = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 MODEL_GPT2 = "openai-community/gpt2"
 MODEL_QWEN_15 = "Qwen/Qwen1.5-7B-Chat"
 MODEL_GEMMA_2 = "google/gemma-2-9b-it"

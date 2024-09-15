@@ -38,7 +38,7 @@ See `models/implementations/gpt2small.py` for an example of how to use this clas
 
 Model implementations. Currently has:
 * Gemma 2 
-* Llama 3.1 
+* Llama 3.1
 * Qwen 1.5 
 * GPT2 (useful for testing locally)
 
