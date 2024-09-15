@@ -37,7 +37,7 @@ class Llama3Tokenizer(Tokenizer):
         assert all(m["role"] in valid_roles for m in messages)
         return self.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=add_generation_prompt
-        )
+        ).replace("<|begin_of_text|>", "")
 
 
 class SteerableLlama3(SteerableModel):
