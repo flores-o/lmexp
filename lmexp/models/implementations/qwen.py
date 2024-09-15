@@ -2,22 +2,14 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from lmexp.generic.activation_steering.steerable_model import SteerableModel
 from lmexp.generic.tokenizer import Message, Tokenizer
 import torch
-import os
-from dotenv import load_dotenv
-from lmexp.models.model_helpers import MODEL_LLAMA_3_CHAT
-from transformers.models.llama import LlamaForCausalLM
+from lmexp.models.model_helpers import MODEL_QWEN_15
+from transformers.models.qwen2 import Qwen2ForCausalLM
 from transformers import BitsAndBytesConfig
 
-load_dotenv()
 
-HUGGINGFACE_TOKEN = os.getenv("HF_TOKEN")
-
-
-class Llama3Tokenizer(Tokenizer):
+class Qwen15Tokenizer(Tokenizer):
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            MODEL_LLAMA_3_CHAT, token=HUGGINGFACE_TOKEN
-        )
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_QWEN_15)
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
     def encode(self, text):
@@ -25,10 +17,6 @@ class Llama3Tokenizer(Tokenizer):
 
     def decode(self, tensor):
         return self.tokenizer.decode(tensor)
-
-    @property
-    def pad_token(self):
-        return self.tokenizer.pad_token_id
 
     def chat_format(
         self, messages: list[Message], add_generation_prompt: bool = False
@@ -39,27 +27,20 @@ class Llama3Tokenizer(Tokenizer):
             messages, tokenize=False, add_generation_prompt=add_generation_prompt
         )
 
+    @property
+    def pad_token(self):
+        return self.tokenizer.pad_token_id
 
-class SteerableLlama3(SteerableModel):
+
+class SteerableQwen15(SteerableModel):
     def __init__(self, load_in_8bit: bool = False):
-        if load_in_8bit:
-            self.model: LlamaForCausalLM = AutoModelForCausalLM.from_pretrained(
-                MODEL_LLAMA_3_CHAT,
-                token=HUGGINGFACE_TOKEN,
-                quantization_config=BitsAndBytesConfig(load_in_8bit=load_in_8bit),
-                device_map="auto",
-            )
-        else:
-            self.model: LlamaForCausalLM = AutoModelForCausalLM.from_pretrained(
-                MODEL_LLAMA_3_CHAT,
-                token=HUGGINGFACE_TOKEN,
-                torch_dtype=torch.bfloat16,
-                device_map="auto",
-            )
-        self.model.config.pad_token_id = self.model.config.eos_token_id
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            MODEL_LLAMA_3_CHAT, token=HUGGINGFACE_TOKEN
+        self.model: Qwen2ForCausalLM = AutoModelForCausalLM.from_pretrained(
+            MODEL_QWEN_15 if not load_in_8bit else "Qwen/Qwen1.5-7B-Chat-GPTQ-Int8",
+            quantization_config=BitsAndBytesConfig(load_in_8bit=load_in_8bit),
+            device_map="auto",
         )
+        self.model.config.pad_token_id = self.model.config.eos_token_id
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_QWEN_15)
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
     @property

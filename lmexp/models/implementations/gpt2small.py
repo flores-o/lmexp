@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from lmexp.generic.activation_steering.steerable_model import SteerableModel
-from lmexp.generic.tokenizer import Tokenizer
+from lmexp.generic.tokenizer import Message, Tokenizer
 import torch
 
 from lmexp.models.model_helpers import MODEL_GPT2
@@ -16,6 +16,14 @@ class GPT2Tokenizer(Tokenizer):
 
     def decode(self, tensor):
         return self.tokenizer.decode(tensor, skip_special_tokens=True)
+
+    def chat_format(
+        self, messages: list[Message], add_generation_prompt: bool = False
+    ) -> str:
+        text = ""
+        for message in messages:
+            text += f"{message['role']}: {message['content']}\n"
+        return text if add_generation_prompt else text.strip()
 
     @property
     def pad_token(self):

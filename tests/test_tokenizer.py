@@ -11,6 +11,9 @@ class SimpleTokenizer(Tokenizer):
     def decode(self, tokens: torch.Tensor) -> str:
         return "".join([chr(c.item()) for c in tokens])
 
+    def chat_format(self, messages: list[dict]) -> str:
+        return " ".join([m["content"] for m in messages])
+
     @property
     def pad_token(self) -> int:
         return 0

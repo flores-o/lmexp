@@ -36,7 +36,11 @@ See `models/implementations/gpt2small.py` for an example of how to use this clas
 
 ### `models`
 
-Model implementations. Currently gpt2 and llama3 are implemented. You can add more models by following the same pattern.
+Model implementations. Currently has:
+* Gemma 2 
+* Llama 3.1 
+* Qwen 1.5 
+* GPT2 (useful for testing locally)
 
 ### `notebooks`
 
@@ -44,5 +48,6 @@ Jupyter notebooks demonstrating basic use-cases.
 
 ## To do
 
-- Integrate with SAE feature steering
-- Add Gemma 2 implementation https://huggingface.co/google/gemma-2-9b
+* Integrate with Gemma 2 SAEs / SAE feature steering
+* Port over all the experiments / plotting code from CAA repo
+* More contrast pair datasets

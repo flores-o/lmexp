@@ -9,8 +9,7 @@ import os
 import json
 import random
 import anthropic
-
-from lmexp.models.model_helpers import input_to_prompt_llama3
+from lmexp.models.implementations.llama3 import Llama3Tokenizer
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -71,6 +70,7 @@ def get_more_claude_data():
 
 
 def format_for_llama():
+    tokenizer = Llama3Tokenizer()
     with open(os.path.join(CURRENT_DIR, "ferret_obsession.json"), "r") as f:
         data = json.load(f)
     llama_data = []
@@ -79,7 +79,12 @@ def format_for_llama():
         response = item["answer_likes_ferrets"]
         llama_data.append(
             {
-                "text": input_to_prompt_llama3(instruction) + response,
+                "text": tokenizer.chat_format(
+                    [
+                        {"role": "user", "content": instruction},
+                        {"role": "assistant", "content": response},
+                    ]
+                ),
             }
         )
     with open(os.path.join(CURRENT_DIR, "ferret_obsession_llama.json"), "w") as f:

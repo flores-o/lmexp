@@ -41,13 +41,13 @@ def sample_loop(
             f"Model {model_name} not supported - add a prompt formatting function for it in FORMAT_FUNCS."
         )
 
-    input_to_prompt_fn = FORMAT_FUNCS[model_name]
-
     while True:
         user_input = input(">> ")
         if user_input.lower() == "q":
             break
-        prompt = input_to_prompt_fn(user_input)
+        prompt = tokenizer.apply_chat_template(
+            [{"role": "user", "text": user_input}], add_generation_prompt=True
+        )
         input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
         attention_mask = torch.ones_like(input_ids)
         output = model.generate(

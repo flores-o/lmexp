@@ -1,8 +1,18 @@
+from typing import TypedDict
 import torch
 from abc import ABC, abstractmethod
 
 
+class Message(TypedDict):
+    role: str
+    content: str
+
+
 class Tokenizer(ABC):
+
+    @abstractmethod
+    def chat_format(self, messages: list[Message], add_generation_prompt: bool) -> str:
+        raise NotImplementedError()
 
     @abstractmethod
     def encode(text: str) -> torch.Tensor:

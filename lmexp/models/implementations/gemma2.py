@@ -4,8 +4,8 @@ from lmexp.generic.tokenizer import Message, Tokenizer
 import torch
 import os
 from dotenv import load_dotenv
-from lmexp.models.model_helpers import MODEL_LLAMA_3_CHAT
-from transformers.models.llama import LlamaForCausalLM
+from lmexp.models.model_helpers import MODEL_GEMMA_2
+from transformers.models.gemma import GemmaForCausalLM
 from transformers import BitsAndBytesConfig
 
 load_dotenv()
@@ -13,10 +13,10 @@ load_dotenv()
 HUGGINGFACE_TOKEN = os.getenv("HF_TOKEN")
 
 
-class Llama3Tokenizer(Tokenizer):
+class Gemma2Tokenizer(Tokenizer):
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained(
-            MODEL_LLAMA_3_CHAT, token=HUGGINGFACE_TOKEN
+            MODEL_GEMMA_2, token=HUGGINGFACE_TOKEN
         )
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
@@ -26,39 +26,39 @@ class Llama3Tokenizer(Tokenizer):
     def decode(self, tensor):
         return self.tokenizer.decode(tensor)
 
-    @property
-    def pad_token(self):
-        return self.tokenizer.pad_token_id
-
     def chat_format(
         self, messages: list[Message], add_generation_prompt: bool = False
     ) -> str:
-        valid_roles = {"assistant", "user", "system"}
+        valid_roles = {"user", "model"}
         assert all(m["role"] in valid_roles for m in messages)
         return self.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=add_generation_prompt
         )
 
+    @property
+    def pad_token(self):
+        return self.tokenizer.pad_token_id
 
-class SteerableLlama3(SteerableModel):
+
+class SteerableGemma2(SteerableModel):
     def __init__(self, load_in_8bit: bool = False):
         if load_in_8bit:
-            self.model: LlamaForCausalLM = AutoModelForCausalLM.from_pretrained(
-                MODEL_LLAMA_3_CHAT,
+            self.model: GemmaForCausalLM = AutoModelForCausalLM.from_pretrained(
+                MODEL_GEMMA_2,
                 token=HUGGINGFACE_TOKEN,
-                quantization_config=BitsAndBytesConfig(load_in_8bit=load_in_8bit),
+                quantization_config=BitsAndBytesConfig(load_in_8bit=True),
                 device_map="auto",
             )
         else:
-            self.model: LlamaForCausalLM = AutoModelForCausalLM.from_pretrained(
-                MODEL_LLAMA_3_CHAT,
+            self.model: GemmaForCausalLM = AutoModelForCausalLM.from_pretrained(
+                MODEL_GEMMA_2,
                 token=HUGGINGFACE_TOKEN,
                 torch_dtype=torch.bfloat16,
                 device_map="auto",
             )
         self.model.config.pad_token_id = self.model.config.eos_token_id
         self.tokenizer = AutoTokenizer.from_pretrained(
-            MODEL_LLAMA_3_CHAT, token=HUGGINGFACE_TOKEN
+            MODEL_GEMMA_2, token=HUGGINGFACE_TOKEN
         )
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
