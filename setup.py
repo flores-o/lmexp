@@ -17,5 +17,7 @@ setup(
         "accelerate==0.31.0",
         "pytest==8.2.2",
         "pandas==2.2.2",
+        "matplotlib==3.9.2",
+        "scikit-learn==1.5.2"
     ],
 )

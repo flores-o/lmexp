@@ -4,7 +4,9 @@ methods to get token masks for activation steering or direction extraction
 all of them take the arguments:
 input_ids of shape batch x max_n_seq
 seq_lens of shape batch - the actual sequence lengths of the input_ids (right-padding is assumed)
-(optional) search_tokens of shape n_search_tokens - tokens to search for in the input_ids
+(optional) search_tokens - tokens to search for in the input_ids
+    - if search_tokens is a tensor of shape n_seq, we search for the exact sequence of tokens in each sequence
+    - if search_tokens is a tuple of two tensors of shape n_seq, we mask between the two sequences of tokens
 in_sampling_mode - a boolean flag indicating whether we are in sampling mode or not
     - in sampling mode, we are sampling one extra token at a time
     - so we have different logic for the token masks in this case
@@ -17,7 +19,7 @@ import torch
 
 
 TokenLocationFn = Callable[
-    [torch.Tensor, torch.Tensor | list | None, torch.Tensor | list | None, bool],
+    [torch.Tensor, torch.Tensor | None, torch.Tensor | tuple[torch.Tensor, torch.Tensor] | None, bool],
     torch.Tensor,
 ]
 
@@ -30,7 +32,12 @@ def validate_shapes(location_func: TokenLocationFn) -> TokenLocationFn:
             assert len(seq_lens.shape) == 1
             assert input_ids.shape[0] == seq_lens.shape[0]
         if search_tokens is not None:
-            assert len(search_tokens.shape) == 1
+            if isinstance(search_tokens, tuple):
+                assert len(search_tokens) == 2
+                assert len(search_tokens[0].shape) == 1
+                assert len(search_tokens[1].shape) == 1
+            else:
+                assert len(search_tokens.shape) == 1
         return location_func(input_ids, seq_lens, search_tokens, in_sampling_mode)
 
     wrapper.__name__ = location_func.__name__
@@ -38,24 +45,41 @@ def validate_shapes(location_func: TokenLocationFn) -> TokenLocationFn:
     return wrapper
 
 
-def get_search_token_positions(input_ids, search_tokens) -> list[tuple[int, int]]:
+def get_search_token_positions(input_ids: torch.Tensor, search_tokens: torch.Tensor) -> list[list[tuple[int, int]]]:
     """
-    returns [[start, end], ...] corresponding to the start and end positions of the (last occurence of) search_tokens in each input_ids sequence
+    Returns a list of lists containing (start, end) tuples for each occurrence of search_tokens in each sequence of input_ids.
 
-    e.g. input_ids = [[1, 2, 3, 4, 5], [2, 3, 4, 0, 1]], search_tokens = [3, 4] -> [[2, 3], [1, 2]]
+    input_ids (torch.Tensor): Tensor of shape (batch_size, seq_len)
+    search_tokens (torch.Tensor): Tensor of shape (search_len,)
+
+    returns: list[list[tuple[int, int]]]: A list where each element corresponds to a sequence in input_ids and contains a list of (start, end) tuples for each match.
     """
-    positions = []
-    for seq in input_ids:
-        found_pos = None
-        for i in range(len(seq) - len(search_tokens) + 1):
-            if torch.equal(seq[i : i + len(search_tokens)], search_tokens):
-                found_pos = [i, i + len(search_tokens)]
-        if found_pos is None:
-            raise ValueError(
-                f"search_tokens {search_tokens} not found in input_ids {seq}"
-            )
-        positions.append(found_pos)
-    return positions
+    batch_size, seq_len = input_ids.shape
+    search_len = search_tokens.shape[0]
+    positions = seq_len - search_len + 1
+
+    if positions <= 0:
+        raise ValueError("Sequence length must be longer than search_tokens length")
+
+    # Use as_strided to get all subsequences of length search_len
+    subsequences = input_ids.as_strided(
+        size=(batch_size, positions, search_len),
+        stride=(input_ids.stride(0), input_ids.stride(1), input_ids.stride(1))
+    )
+
+    # Compare subsequences with search_tokens
+    matches = (subsequences == search_tokens).all(dim=2)  # shape (batch_size, positions)
+
+    # For each sequence, get the indices where matches is True
+    positions_list = []
+    for i in range(batch_size):
+        matched_positions = matches[i].nonzero(as_tuple=False).squeeze(1)
+        if matched_positions.numel() == 0:
+            raise ValueError(f"search_tokens {search_tokens.tolist()} not found in input_ids {input_ids[i].tolist()}")
+        start_positions = matched_positions.tolist()
+        end_positions = (matched_positions + search_len).tolist()
+        positions_list.append(list(zip(start_positions, end_positions)))
+    return positions_list
 
 
 @validate_shapes
@@ -80,43 +104,65 @@ def all_tokens(input_ids, seq_lens, _, in_sampling_mode=False):
 
 @validate_shapes
 def at_search_tokens(input_ids, _, search_tokens, in_sampling_mode=False):
+    assert not isinstance(search_tokens, tuple)
     if in_sampling_mode:
         return torch.zeros_like(input_ids)
     search_positions = get_search_token_positions(input_ids, search_tokens)
     mask = torch.zeros_like(input_ids)
-    for i, (start, end) in enumerate(search_positions):
-        mask[i, start:end] = 1
+    for i, positions in enumerate(search_positions):
+        for start, end in positions:
+            mask[i, start:end] = 1
     return mask
 
 
 @validate_shapes
 def before_search_tokens(input_ids, _, search_tokens, in_sampling_mode=False):
+    assert not isinstance(search_tokens, tuple)
     if in_sampling_mode:
         return torch.zeros_like(input_ids)
     search_positions = get_search_token_positions(input_ids, search_tokens)
     mask = torch.zeros_like(input_ids)
-    for i, (start, _) in enumerate(search_positions):
+    for i, positions in enumerate(search_positions):
+        start, _ = positions[0]
         mask[i, :start] = 1
     return mask
 
 
 @validate_shapes
 def from_search_tokens(input_ids, _, search_tokens, in_sampling_mode=False):
+    assert not isinstance(search_tokens, tuple)
     if in_sampling_mode:
         return torch.ones_like(input_ids)
     search_positions = get_search_token_positions(input_ids, search_tokens)
     mask = torch.zeros_like(input_ids)
-    for i, (start, _) in enumerate(search_positions):
+    for i, positions in enumerate(search_positions):
+        start, _ = positions[0]
         mask[i, start:] = 1
     return mask
 
 
 @validate_shapes
 def after_search_tokens(input_ids, _, search_tokens, in_sampling_mode=False):
+    assert not isinstance(search_tokens, tuple)
     if in_sampling_mode:
         return torch.ones_like(input_ids)
     search_positions = get_search_token_positions(input_ids, search_tokens)
     mask = torch.zeros_like(input_ids)
-    for i, (_, end) in enumerate(search_positions):
+    for i, positions in enumerate(search_positions):
+        _, end = positions[0]
         mask[i, end:] = 1
+    return mask
+
+
+@validate_shapes
+def between_search_tokens(input_ids, _, search_tokens, in_sampling_mode=False):
+    assert isinstance(search_tokens, tuple)
+    if in_sampling_mode:
+        return torch.zeros_like(input_ids)
+    start_search_positions = get_search_token_positions(input_ids, search_tokens[0])
+    end_search_positions = get_search_token_positions(input_ids, search_tokens[1])
+    mask = torch.zeros_like(input_ids)
+    for i, (start_positions, end_positions) in enumerate(zip(start_search_positions, end_search_positions)):
+        for (start, _), (_, end) in zip(start_positions, end_positions):
+            mask[i, start:end] = 1
     return mask

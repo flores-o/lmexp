@@ -8,3 +8,4 @@ finetuned_models
 logs
 *.pth
 .pytest_cache
+lmexp/notebooks/*.json
