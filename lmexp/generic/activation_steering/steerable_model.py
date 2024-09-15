@@ -20,7 +20,7 @@ from dataclasses import dataclass
 class SteeringConfig:
     layer: int
     vector: torch.Tensor
-    scale: float | None
+    scale: float | None = None
     steering_fn: SteeringFunction = add_multiplier
     token_location_fn: TokenLocationFn = all_tokens
     search_tokens: torch.Tensor | None = None

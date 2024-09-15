@@ -65,6 +65,7 @@ class SteerableQwen15(SteerableModel):
             do_sample=False,
             temperature=None,
             top_p=None,
+            top_k=None
         )
 
     @property
