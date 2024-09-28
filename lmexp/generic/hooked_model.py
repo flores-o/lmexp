@@ -60,6 +60,8 @@ class HookedModel(ABC):
             module.saved_input_ids = args
         if "position_ids" in kwargs:
             module.saved_position_ids = kwargs["position_ids"]
+        else:
+            module.saved_position_ids = None
 
     @staticmethod
     def output_to_acts(module_output: Any) -> torch.Tensor:
