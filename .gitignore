@@ -1,4 +1,5 @@
 __pycache__
+lmexp_venv/
 venv
 .env
 **/__pycache__
